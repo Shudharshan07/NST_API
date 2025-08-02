@@ -35,14 +35,13 @@ class NST:
 
         return bio
 
-    def __init__(self):
-        self.model = hub.load('https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2')
-
     def __call__(self, Content_path, Style_path):
+        model = hub.load('https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2')
         Content = self.LoadImage(Content_path)
         Style = self.LoadImage(Style_path)
 
-        output = self.model(tf.constant(Content), tf.constant(Style))[0]
+        output = model(tf.constant(Content), tf.constant(Style))[0]
 
         return self.ToImage(output)
+
 
