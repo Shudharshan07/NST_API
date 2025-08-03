@@ -12,7 +12,7 @@ class NST:
 
         shape = tf.cast(tf.shape(img)[:-1], tf.float32)
 
-        scale = 512 / max(shape)
+        scale = 256 / max(shape)
         shape = tf.cast(shape * scale, tf.int32)
 
         img = tf.image.resize(img, shape)
@@ -55,3 +55,4 @@ class NST:
         except Exception as e:
             gc.collect()
             raise e
+
