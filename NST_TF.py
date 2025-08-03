@@ -3,14 +3,15 @@ import tensorflow_hub as hub
 from PIL import Image
 import numpy as np
 from io import BytesIO
+import gc
 
 class NST:
     def LoadImage(self, path):
         img = tf.image.decode_image(path, channels=3)
         img = tf.image.convert_image_dtype(img, tf.float32)
 
-
         shape = tf.cast(tf.shape(img)[:-1], tf.float32)
+
         scale = 512 / max(shape)
         shape = tf.cast(shape * scale, tf.int32)
 
@@ -29,19 +30,28 @@ class NST:
 
         img = Image.fromarray(arr)
         bio = BytesIO()
-        bio.name = "OUTPUT.png"
-        img.save(bio, format="PNG")
+        bio.name = "OUTPUT.jpeg"
+    
+        img.save(bio, format="JPEG", quality=85, optimize=True)
         bio.seek(0)
 
         return bio
 
+    def __init__(self):
+        self.model = hub.load('https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2')
+
     def __call__(self, Content_path, Style_path):
-        model = hub.load('https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2')
-        Content = self.LoadImage(Content_path)
-        Style = self.LoadImage(Style_path)
+        try:
+            Content = self.LoadImage(Content_path)
+            Style = self.LoadImage(Style_path)
 
-        output = model(tf.constant(Content), tf.constant(Style))[0]
-
-        return self.ToImage(output)
-
-
+            output = self.model(tf.constant(Content), tf.constant(Style))[0]
+            result = self.ToImage(output)
+            
+            del Content, Style, output
+            gc.collect()
+            
+            return result
+        except Exception as e:
+            gc.collect()
+            raise e
