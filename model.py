@@ -91,20 +91,56 @@ async def handle_image(update: Update):
             )
             
             try:
-                print(f"Starting NST processing for user {id}")
-                output = model(user_data[id]["Content"], user_data[id]["Style"])
-                print(f"NST processing completed for user {id}")
+                print(f"🎨 Starting NST processing for user {id}")
+                print(f"📏 Content image size: {len(user_data[id]['Content'])} bytes")
+                print(f"📏 Style image size: {len(user_data[id]['Style'])} bytes")
+                
+                # Add timeout and progress updates
+                import asyncio
+                
+                # Send a progress update after 10 seconds
+                async def progress_update():
+                    await asyncio.sleep(10)
+                    try:
+                        await bot.send_message(
+                            chat_id=chat_id,
+                            text="Still processing... This may take up to 60 seconds ⏰"
+                        )
+                    except:
+                        pass
+                
+                # Start progress task
+                progress_task = asyncio.create_task(progress_update())
+                
+                # Process with timeout
+                output = await asyncio.wait_for(
+                    asyncio.to_thread(model, user_data[id]["Content"], user_data[id]["Style"]),
+                    timeout=60  # 60 second timeout
+                )
+                
+                # Cancel progress update if processing completed
+                progress_task.cancel()
+                
+                print(f"✅ NST processing completed for user {id}")
+                print(f"📤 Output size: {len(output.getvalue())} bytes")
                 
                 await bot.send_photo(chat_id=chat_id, photo=output)
                 await bot.send_message(
                     chat_id=chat_id,
-                    text="**Done!**\n\nSend a new **Content Image** to start again!",
+                    text="✨ **Done!** ✨\n\nSend a new **Content Image** to start again!",
                     parse_mode="Markdown"
                 )
                 
                 # Reset for next round, but keep user in system
                 user_data[id] = {"Content": None, "Style": None, "ChatID": chat_id}
                 
+            except asyncio.TimeoutError:
+                print(f"⏰ NST processing timeout for user {id}")
+                await bot.send_message(
+                    chat_id=chat_id, 
+                    text="⏰ Processing timed out. Please try with smaller images or try again later."
+                )
+                user_data[id] = {"Content": None, "Style": None, "ChatID": chat_id}
             except ValueError as ve:
                 print(f"❌ ValueError in NST: {ve}")
                 await bot.send_message(chat_id=chat_id, text=f"❌ Error: {str(ve)}")
@@ -120,7 +156,7 @@ async def handle_image(update: Update):
             user_data[id]["Style"] = None
             await bot.send_message(
                 chat_id=chat_id,
-                text="New content image received! Now send me a **Style Image**",
+                text="🔄 New content image received! Now send me a **Style Image**",
                 parse_mode="Markdown"
             )
             
