@@ -4,3 +4,5 @@ python-telegram-bot==22.3
 flask
 python-dotenv
 pillow
+fastapi==0.104.1
+uvicorn==0.24.0
